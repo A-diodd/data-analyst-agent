@@ -1,0 +1,91 @@
+findings:
+  - id: order_items_grain
+    text: order_items 一行是一件商品，一个订单可以有 1 到 21 行。88863 个订单只有 1 行。
+    verify_sql: |
+      SELECT n, count(*) AS orders
+      FROM (
+          SELECT order_id, count(*) AS n
+          FROM order_items
+          GROUP BY order_id
+      ) t
+      GROUP BY n
+      ORDER BY n;
+
+  - id: customer_id_not_person
+    text: customer_id 几乎每行都不同。同一个人是 customer_unique_id，有人对应 2 到 17 个 customer_id。用 customer_id 统计购买用户数会偏大。
+    verify_sql: |
+      SELECT n, count(*) AS people
+      FROM (
+          SELECT customer_unique_id, count(*) AS n
+          FROM customers
+          GROUP BY customer_unique_id
+      ) t
+      GROUP BY n
+      ORDER BY n;
+
+  - id: items_payments_join_fanout
+    text: order_items 与 payments 只按 order_id JOIN 后，商品金额从 13591643.70 变成 14209115.34。一个订单可以有多行支付，price 被重复加总。
+    verify_sql: |
+      SELECT
+          (SELECT sum(price) FROM order_items) AS items_price,
+          (
+              SELECT sum(i.price)
+              FROM order_items i
+              JOIN payments p ON p.order_id = i.order_id
+          ) AS price_after_join;
+
+  - id: month_coverage_sparse
+    text: 订单主要在 2017-01 到 2018-08。2016-09 有 4 单，2016-10 有 324 单，2016-11 没有，2016-12 有 1 单。2018-09 有 16 单，2018-10 有 4 单。2017-11 有 7544 单，高于相邻月份。
+    verify_sql: |
+      SELECT date_trunc('month', order_purchase_timestamp) AS month, count(*) AS orders
+      FROM orders
+      GROUP BY 1
+      ORDER BY 1;
+
+  - id: reviews_not_one_row
+    text: 98126 个订单有 1 条评论，543 个有 2 条，4 个有 3 条。review_id 也不唯一，99224 行里只有 98410 个不同的 review_id。
+    verify_sql: |
+      SELECT count(*) AS rows, count(DISTINCT review_id) AS review_ids
+      FROM reviews;
+
+  - id: geolocation_zip_fanout
+    text: geolocation 有 1000163 行，邮编前缀只有 19015 个。按邮编前缀 JOIN 会把行数放大很多。
+    verify_sql: |
+      SELECT count(*) AS rows, count(DISTINCT geolocation_zip_code_prefix) AS prefixes
+      FROM geolocation;
+
+  - id: order_status
+    text: 96478 单是 delivered。其余还有 shipped、canceled、unavailable、invoiced、processing、created、approved。已送达销售额只能用 delivered。
+    verify_sql: |
+      SELECT order_status, count(*) AS orders
+      FROM orders
+      GROUP BY 1
+      ORDER BY orders DESC;
+
+  - id: missing_values
+    text: 99441 单里有 2965 单没有送达时间。32951 个商品里有 610 个没有品类名。
+    verify_sql: |
+      SELECT count(*) AS orders,
+             count(*) FILTER (WHERE order_delivered_customer_date IS NULL) AS missing_delivered
+      FROM orders;
+
+  - id: category_translation_gap
+    text: 有 2 个品类没有英文翻译，pc_gamer 和 portateis_cozinha_e_preparadores_de_alimentos。
+    verify_sql: |
+      SELECT c.product_category_name
+      FROM (
+          SELECT DISTINCT product_category_name
+          FROM products
+          WHERE product_category_name IS NOT NULL
+      ) c
+      LEFT JOIN category_translation t USING (product_category_name)
+      WHERE t.product_category_name IS NULL;
+
+  - id: misspelled_columns
+    text: products 的 product_name_lenght 和 product_description_lenght 在源数据里就少了一个 h。
+    verify_sql: |
+      SELECT column_name
+      FROM information_schema.columns
+      WHERE table_schema = 'olist'
+        AND table_name = 'products'
+        AND column_name LIKE '%lenght%';

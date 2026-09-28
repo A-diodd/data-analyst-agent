@@ -1,0 +1,51 @@
+- name: gmv     #指标唯一标识    #确定口径
+  zh: 成交总额   #中文名
+  aliases: [GMV, 销售额, 成交额]   #别名
+  definition: 已送达订单的商品金额之和，不含运费   #精确定义
+ 
+- name: order_count
+  zh: 订单数
+  aliases: [订单数, 订单量]
+  definition: 订单的个数
+
+- name: aov
+  zh: 客单价
+  aliases: [客单价, 笔单价]
+  definition: 已送达订单的平均商品金额，不含运费
+
+- name: buyer_count
+  zh: 购买用户数
+  aliases: [购买用户数, 客户数, 用户数]
+  definition: 发生过购买的用户人数，同一用户只计一次
+
+- name: repurchase_rate
+  zh: 复购率
+  aliases: [复购率, 回购率]
+  definition: 购买不少于 2 次的用户占购买用户的比例
+
+- name: bad_review_rate
+  zh: 差评率
+  aliases: [差评率, 低分率]
+  definition: 评分小于等于 2 的订单占有评分订单的比例
+  numerator: 评分小于等于 2 的订单数      #分子
+  denominator: 有评分的订单数             #分母
+
+- name: avg_review_score
+  zh: 平均评分
+  aliases: [平均评分, 均分]
+  definition: 有评分订单的评分平均值
+
+- name: avg_delivery_days
+  zh: 平均配送天数
+  aliases: [平均配送天数, 平均送达天数]
+  definition: 已送达订单从购买到送达的平均天数
+
+- name: delay_rate
+  zh: 延迟率
+  aliases: [延迟率, 超时送达率]
+  definition: 实际送达时间晚于预计送达时间的已送达订单占比
+
+- name: freight_ratio
+  zh: 运费占比
+  aliases: [运费占比, 运费比例]
+  definition: 已送达订单的运费之和占商品金额与运费之和的比例
